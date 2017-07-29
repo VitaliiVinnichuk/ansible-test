@@ -1,26 +1,53 @@
+---
+# Test playbook
 - name: Configure webserver with nginx
   hosts: webservers
   sudo: True
+  vars:
+    key_file: /etc/nginx/ssl/nginx.key
+    cert_file: /etc/nginx/ssl/nginx.crt
+    conf_file: /etc/nginx/sites-available/default
+    server_name: localhost
   tasks:
     - name: install nginx
-      apt: name=nginx update_cache=yes
-
-    - name: copy nginx file config
+      apt: name=nginx update_cache=yes cache_valid_time=3600
+    
+    - name: create directories for ssl certificates
+      file: 
+        path: /etc/nginx/ssl
+        state: directory
+    
+    - name: copy TLS key
       copy:
-        src: files/nginx.conf
-        dest: /etc/nginx/sites-available/default
+        src: files/nginx.key
+        dest: {{ key_file }} 
+        owner: root
+        notify: restart nginx
+
+    - name: copy TLS certificate
+      copy:
+        src: files/nginx.cert
+        dest: {{ cert_file }} 
+        owner: root
+        notify: restart nginx
+
+    - name: copy nginx config file
+      copy:
+        src: templates/nginx.conf.j2
+        dest: {{ conf_file }}
 
     - name: enable configuration
       file:
-        src: /etc/nginx/sites-enabled/default
-        dst: /etc/nginx/sites-enabled/default
+        src: {{ conf_file }}
+        dest: /etc/nginx/sites-enabled/default
         state: link
 
     - name: copy index.html
       template:
         src: templates/index.html.j2
-        dst: /usr/share/nginx/html/index.html
+        dest: /usr/share/nginx/html/index.html
         mode: 0644
-
-    - name: restart nginx service
-      service: name=nginx state=restart
+  
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
