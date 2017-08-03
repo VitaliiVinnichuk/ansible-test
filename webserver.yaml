@@ -7,7 +7,7 @@
     key_file: /etc/nginx/ssl/nginx.key
     cert_file: /etc/nginx/ssl/nginx.crt
     conf_file: /etc/nginx/sites-available/default
-    server_name: localhost
+    server_name: localhost    
   tasks:
     - name: install nginx
       apt: name=nginx update_cache=yes cache_valid_time=3600
@@ -20,25 +20,25 @@
     - name: copy TLS key
       copy:
         src: files/nginx.key
-        dest: {{ key_file }} 
+        dest: "{{ key_file }} "
         owner: root
-        notify: restart nginx
+      notify: restart nginx
 
     - name: copy TLS certificate
       copy:
-        src: files/nginx.cert
-        dest: {{ cert_file }} 
+        src: files/nginx.crt
+        dest: "{{ cert_file }}"
         owner: root
-        notify: restart nginx
+      notify: restart nginx
 
     - name: copy nginx config file
-      copy:
+      template:
         src: templates/nginx.conf.j2
-        dest: {{ conf_file }}
+        dest: "{{ conf_file }}"
 
     - name: enable configuration
       file:
-        src: {{ conf_file }}
+        src: "{{ conf_file }}"
         dest: /etc/nginx/sites-enabled/default
         state: link
 
